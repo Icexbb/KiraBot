@@ -2,3 +2,6 @@
 *.json
 *.env
 __bot__.py
+
+.idea/*
+.vscode/*

@@ -3,7 +3,9 @@
 *.env
 __bot__.py
 
-.idea
-.vscode
+.idea/*.*
+.vscode/*.*
+.log/*.*
 
+*.log
 *.pyc

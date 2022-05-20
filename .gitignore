@@ -1,0 +1,4 @@
+# config files
+*.json
+*.env
+__bot__.py

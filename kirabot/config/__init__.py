@@ -5,14 +5,14 @@ import nonebot
 
 from .__bot__ import *
 
-# load module configs
+# load handler configs
 
 for module in MODULES_ON:
     try:
         importlib.import_module('kirabot.config.' + module)
         nonebot.logger.info(f'成功加载 "{module}"的配置文件')
     except ModuleNotFoundError:
-        # logger.warning(f'Not found config of "{module}"')
+        # logger.warning(f'Not found config of "{handler}"')
         pass
 json_config_data = os.path.dirname(__file__) + f'/data/'
 if not os.path.exists(json_config_data):

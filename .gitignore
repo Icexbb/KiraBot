@@ -9,3 +9,5 @@ __bot__.py
 
 *.log
 *.pyc
+
+*.bat

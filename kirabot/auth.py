@@ -61,6 +61,9 @@ class EventAuth:
 
         return NORMAL
 
+    def check_user_permission(self, auth: int):
+        return self.get_user_permission() > auth
+
     def set_block_user(self, td: datetime.timedelta, user_id: int = None):
         now = datetime.datetime.now()
         block_time = now + td

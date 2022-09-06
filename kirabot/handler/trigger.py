@@ -68,14 +68,15 @@ class MessageTrigger:
                     logger.error(
                         KEY_TRIGGER_ADD_ERROR.format(trigger=p))
 
-        def match(self, message: str):
+        def match(self, event: Event):
             raise NotImplementedError
 
     class Prefix(MainTrigger):
         def __init__(self) -> None:
             super().__init__()
 
-        def match(self, message: str):
+        def match(self, event: Event):
+            message: str = str(event.get_message())
             matched_func: List[Function] = []
             for key in self.key:
                 me = message
@@ -92,7 +93,8 @@ class MessageTrigger:
         def __init__(self) -> None:
             super().__init__()
 
-        def match(self, message: str):
+        def match(self, event: Event):
+            message: str = str(event.get_message())
             matched_func: List[Function] = []
             for key in self.key:
                 me = message
@@ -109,7 +111,8 @@ class MessageTrigger:
         def __init__(self):
             super().__init__()
 
-        def match(self, message: str):
+        def match(self, event: Event):
+            message: str = str(event.get_message())
             matched_func: List[Function] = []
             for key in self.key:
                 me = message
@@ -126,7 +129,8 @@ class MessageTrigger:
         def __init__(self):
             super().__init__()
 
-        def match(self, message: str):
+        def match(self, event: Event):
+            message: str = str(event.get_message())
             matched_func: List[Function] = []
             for key in self.key:
                 me = message
@@ -135,7 +139,9 @@ class MessageTrigger:
                     for nickname in NICKNAME:
                         if re.search(nickname, me):
                             me = re.sub(nickname, '', me, 1)
-                if re.search(key, me) and (func not in matched_func):
+                match = re.search(key, me)
+                if match and (func not in matched_func):
+                    event.match[f'{func.module_name}.{func.service_name}.{func.name}'] = match
                     matched_func.append(func)
             return matched_func
 
@@ -143,7 +149,8 @@ class MessageTrigger:
         def __init__(self):
             super().__init__()
 
-        def match(self, message: str):
+        def match(self, event: Event):
+            message: str = str(event.get_message())
             matched_func: List[Function] = []
             for key in self.key:
                 me = message
@@ -160,7 +167,8 @@ class MessageTrigger:
         def __init__(self):
             super().__init__()
 
-        def match(self, message: str):
+        def match(self, event: Event):
+            message: str = str(event.get_message())
             matched_func: List[Function] = []
             for key in self.key:
                 me = message
@@ -191,10 +199,9 @@ class MessageTrigger:
 
     def match(self, event: Event):
         function: List[Function] = []
-        message = str(event.get_message())
 
         for trigger in self.trigger_chain:
-            if s := trigger.match(message):
+            if s := trigger.match(event):
                 function += s
         return function
 

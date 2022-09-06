@@ -23,7 +23,7 @@ async def module_manage(bot: Bot, event: Event):
     status = True if re.search(r'^(开启)|(启用)', msg) else False
     area_id = get_area_id(event)
     try:
-        set_module_status(area_id, status, module_name, service_name)
+        fin = set_module_status(area_id, status, module_name, service_name)
     except Exception as e:
         if isinstance(e, ModuleNotFoundError):
             await bot.send(event, f'服务管理失败: {"模块" if not service_name else "服务"} {".".join(mod)}不存在')
@@ -31,8 +31,12 @@ async def module_manage(bot: Bot, event: Event):
             await bot.send(event, f'服务管理失败: {e}')
             module_manager.logger.exception(e)
     else:
-        await bot.send(event, f'已{"开启" if status else "关闭"}{"模块" if not service_name else "服务"} {".".join(mod)}',
-                       at_sender=True)
+        if fin:
+
+            await bot.send(event, f'已{"开启" if status else "关闭"}{"模块" if not service_name else "服务"} {".".join(mod)}',
+                           at_sender=True)
+        else:
+            await bot.send(event, f'服务 {".".join(mod)} 在该区域内不可用 无法开启', at_sender=True)
 
 
 @module_manager.at_message("full", ["模块列表", "功能列表"], (1, 1, 1), True, True)

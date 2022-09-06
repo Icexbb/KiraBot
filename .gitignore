@@ -3,13 +3,30 @@
 *.env
 __bot__.py
 
+#media and asset
+*.mkv
+*.mp4
+*.avi
+*.wmv
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.m4a
+*.png
+*.jpg
+*.webm
+*.gif
+*.bmp
+#ide files
 .idea/*.*
 .vscode/*.*
-.log/*.*
-
+#log
 *.log
+.log/*.*
+#python cache
 *.pyc
-
+#batch file
 *.bat
-
-modules/
+#user modules
+/modules/*

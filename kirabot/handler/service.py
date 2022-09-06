@@ -6,14 +6,16 @@ from typing import Tuple
 import nonebot
 from nonebot import Bot
 from nonebot.adapters import Event
+from nonebot.adapters.onebot.v11 import Message
 from nonebot_plugin_apscheduler import scheduler
 
 from .function import Function
+from .resource import Resource
 from .trigger import MESSAGE_TRIGGER_TYPE, message_trigger, notice_trigger
 from .. import auth
 from ..config import update_config, get_config
 from ..format import *
-from ..utils import get_area_id
+from ..utils import get_area_id, chain_reply
 
 
 class Service:
@@ -42,6 +44,8 @@ class Service:
         self.scheduler = scheduler
         self.enabled_area = self_dict["enabled_area"] or []
         self.disabled_area = self_dict["disabled_area"] or []
+        self.resource = Resource(self.module_name)
+        self.re_pointer = f"{self.module_name}.{self.name}"
 
     @property
     def bot(self) -> Bot:
@@ -163,40 +167,60 @@ class Service:
                 return False
         return True
 
-    async def broadcast(self, msg: str, at_all: bool = False, interval: float = 0.5):
+    async def broadcast(self, msg: str | Message | list, at_all: bool = False, interval: float = 0.5):
         """
         服务广播
-        msg:str 要进行广播的信息
-        at_all:bool 是否要@全体成员
-        interval:float 每条信息发送时的间隔
+
+        Args:
+            msg: str 要进行广播的信息
+            at_all: bool 是否要@全体成员
+            interval: float 每条信息发送时的间隔
+
+        Returns:
+            None
         """
         config = self.load_config()
-        groups = [gid for gid in config['enabled_area'] if gid.startswith('g')]
-        guilds = [gid for gid in config['enabled_area'] if gid.startswith('c')]
-        users = [gid for gid in config['enabled_area'] if gid.startswith('u')]
-        if at_all:
-            msg += "[CQ:at,qq=all]"
-        for area_id in users:
-            try:
-                await asyncio.sleep(interval)
-                # await self.bot.send_private_msg(group_id=gid, msg=msg)
-            except Exception as e:
-                self.logger.error(f'Exception {e} in Send Message To User {area_id}')
+        area_ids = config['enabled_area']
 
-        for area_id in groups:
-            try:
-                group_id = area_id[1:]
-                await asyncio.sleep(interval)
-                await self.bot.send_group_msg(group_id=group_id, message=msg)
-            except Exception as e:
-                self.logger.error(f'Exception {e} in Send Message To Group {area_id}')
-        for area_id in guilds:
-            try:
+        if at_all and not isinstance(msg, list):
+            msg = "[CQ:at,qq=all]" + msg
+
+        for area_id in area_ids:
+            await asyncio.sleep(interval)
+            await self.send(area_id, msg)
+
+    async def reply(self, event: Event, message: str | Message | list, at_sender=False):
+        area_id = get_area_id(event)
+        at = f"[CQ:at,qq={event.get_user_id()}]" if at_sender else ""
+        if not isinstance(message, list):
+            message = at + message
+        await self.send(area_id, message)
+
+    async def send(self, area_id: str, message: str | Message | list):
+        try:
+            if area_id.startswith('g'):
+                if isinstance(message, list):
+                    msg = chain_reply(message)
+                    msg_id = await self.bot.send_group_forward_msg(group_id=area_id[1:], messages=msg)
+                else:
+                    msg_id = await self.bot.send_group_msg(group_id=area_id[1:], message=message)
+            elif area_id.startswith('c'):
                 guild_id, channel_id = area_id[1:].split('-')
-                await asyncio.sleep(interval)
-                await self.bot.send_guild_channel_msg(guild_id=guild_id, channel_id=channel_id, message=msg)
-            except Exception as e:
-                self.logger.error(f'Exception {e} in Send Message To Guild {area_id}')
+                if isinstance(message, list):
+                    message = "\n".join(message)
+                msg_id = await self.bot.send_guild_channel_msg(guild_id=guild_id, channel_id=channel_id,
+                                                               message=message)
+            elif area_id.startswith('u'):
+                if isinstance(message, list):
+                    msg = chain_reply(message)
+                    msg_id = await self.bot.send_private_forward_msg(user_id=area_id[1:], messages=msg)
+                else:
+                    msg_id = await self.bot.send_private_msg(send_private_msg=area_id[1:], message=message)
+            else:
+                raise ValueError(f"Area id wrong {area_id}")
+            return msg_id
+        except Exception as e:
+            self.logger.error(f'Exception {e} in Send Message To {area_id}')
 
     def save_config(self, data: dict):
         """

@@ -3,21 +3,18 @@ import json
 import os
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Union
 
-import aiohttp
-import requests
 from PIL import Image
-from aiosocksy.connector import ProxyConnector, ProxyClientRequest
 from nonebot import logger
-from nonebot.adapters.onebot.v11 import Event
+from nonebot.adapters.onebot.v11 import Event, Bot
+from nonebot.exception import ActionFailed
 
-from ..config import RESOURCE, SELF_ID, RNAME, PROXIES, PROXY
+from ..config import RESOURCE, SELF_ID, RNAME, SUPERUSERS
 
 
-def chain_reply(msgs: list, bot_name: str = RNAME, bot_uid: int = SELF_ID[0]) -> list:
+def chain_reply(msgs: list, bot_name: str = RNAME, bot_uid: int | str = SELF_ID[0]) -> list:
     """
     列表内消息转换为可合并转发格式
     """
@@ -30,45 +27,6 @@ def chain_reply(msgs: list, bot_name: str = RNAME, bot_uid: int = SELF_ID[0]) ->
         },
     } for msg in msgs]
     return chain
-
-
-async def async_get_json(url: str, proxy: bool = False, headers: dict = None, params: dict = None) -> Union[dict, list]:
-    """异步获取json内容"""
-    try:
-        async with aiohttp.ClientSession(
-                connector=ProxyConnector(), request_class=ProxyClientRequest, headers=headers,
-        ) as session:
-            async with session.get(url, params=params, proxy=PROXY if proxy else None) as response:
-                try:
-                    res = await response.json()
-                except Exception as e:
-                    logger.warning(f'Exception {e} Happened')
-
-                    res = json.loads(await response.text('utf-8'), strict=False)
-    except Exception as e:
-        logger.warning(f'Async get {url} json data Failed, Try normally. Exception {e}')
-        response = requests.get(url, params, headers=headers,
-                                proxies=PROXIES if proxy else None)
-        try:
-            res = response.json()
-        except Exception as e:
-            logger.warning(f'Exception {e} Happened')
-            res = json.loads(response.text, strict=False)
-    return res
-
-
-async def async_download(url: str, path: str, filename: str, proxy: bool = False, headers: dict = None):
-    """异步下载文件"""
-    async with aiohttp.ClientSession(
-            connector=ProxyConnector(), request_class=ProxyClientRequest, headers=headers
-    ) as session:
-        async with session.get(url, proxy=PROXY if proxy else None) as response:
-            if not response.status == 200:
-                return False
-            content = await response.read()
-            with open(path + filename, 'wb') as file_output:
-                file_output.write(content)
-                return True
 
 
 def _pic2b64(pic: Image.Image) -> str:
@@ -130,7 +88,7 @@ class DailyNumberLimiter:
         self.max = max_num
 
     def _get_data(self):
-        data = load_json(f'{self.name}.json', ['DailyNumberLimiter'])
+        data = load_json(f'{self.name}.json', ['DailyNumberLimiter']) or {}
         date = datetime.today().strftime('%y%m%d')
         if date in data:
             return data[date]
@@ -144,11 +102,9 @@ class DailyNumberLimiter:
         save_json(next_data, f'{self.name}.json', ['DailyNumberLimiter'])
 
     def check(self, key) -> bool:
-        data = self._get_data()
-        if key not in data:
-            count = data[key]
-        else:
-            count = 0
+        if not isinstance(key, str):
+            key = str(key)
+        count = self._get_num(key)
         return bool(count < self.max)
 
     def _get_num(self, key):
@@ -188,7 +144,7 @@ def _get_json_file_path(file_name: str = None, res_path: list[str] = None):
     os.makedirs(file_root, exist_ok=True)
     if not file_name.endswith('.json'):
         file_name += '.json'
-    file_root += file_name
+    # file_root += file_name
     file_path = os.path.join(file_root, file_name)
     return file_path
 
@@ -225,3 +181,36 @@ def get_area_id(event: Event) -> str:
     else:
         area_id = f'u{ev_dict["user_id"]}'
     return area_id
+
+
+async def silence(bot: Bot, ev: Event, ban_time, skip_su=True):
+    area_id = get_area_id(event=ev)
+    if area_id.startswith('g'):
+        try:
+            uid = ev.get_user_id()
+            if skip_su and uid in SUPERUSERS:
+                return
+            await bot.set_group_ban(self_id=ev.self_id, group_id=area_id[1:], user_id=uid,
+                                    duration=ban_time)
+        except ActionFailed as e:
+            if 'NOT_MANAGEABLE' in str(e):
+                return
+            else:
+                logger.error(f'禁言失败 {e}')
+        except Exception as e:
+            logger.exception(e)
+
+
+def num2week(week_id: int) -> str:
+    week_str = "星期一星期二星期三星期四星期五星期六星期日"
+    pos = (week_id - 1) * 3
+    return week_str[pos:pos + 3]
+
+
+def timedelta2str(timed: timedelta) -> str:
+    sec = int(timed.total_seconds())
+    d, h = divmod(sec, 3600 * 24)
+    h, r = divmod(h, 3600)
+    m, s = divmod(r, 60)
+    result = f'{str(d) + "天" if d else ""}{str(h) + "时" if h else ""}{str(m) + "分" if m else ""}{str(s) + "秒" if s else ""}'.strip()
+    return result

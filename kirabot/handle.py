@@ -25,9 +25,11 @@ event_property = [
 
 @message_processor.handle()
 async def handle_message(bot: Bot, event: Event):
+    event.match = {}
     positive_triggered = False
     area_id = get_area_id(event)
     functions = message_trigger.match(event)
+
     for function in functions:
         if positive_triggered and function.positive:
             continue
@@ -84,7 +86,7 @@ async def trigger_function(function: Function, bot: Bot, event: Event):
                 module=function.module_name,
                 sv=function.service_name,
                 func=function.name,
-                message_id=event.dict()["message_id"],
+                message=event.dict()["message_id"],
                 exception=type(e)
             ))
         logger.exception(e)

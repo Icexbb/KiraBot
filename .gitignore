@@ -12,4 +12,4 @@ __bot__.py
 
 *.bat
 
-/module/
+modules/

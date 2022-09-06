@@ -1,6 +1,9 @@
 # config files
 *.json
 *.env
+*.png
+*.wav
+
 __bot__.py
 
 .idea/*.*
@@ -12,4 +15,4 @@ __bot__.py
 
 *.bat
 
-modules/
+/modules/*

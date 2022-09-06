@@ -5,6 +5,8 @@ MODULE_NOT_EXIST_ERROR = "Module {handler} not Exists"
 
 NOT_INIT_ERROR = "KiraBot is Not Initialed"
 
+NOT_RUNNING_ERROR = "KiraBot is Not Running"
+
 SV_NAME_EXISTED_ERROR = "Service Name {name} Existed."
 
 SV_POSITIVELY_TRIGGERED = 'Message {mid} Positively Triggered Function <green>{func_name}</>'

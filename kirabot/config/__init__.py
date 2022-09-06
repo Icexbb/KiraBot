@@ -27,11 +27,11 @@ def get_config(key: str, subkey: str = None):
             if subkey in data:
                 return data[subkey]
             else:
-                return None
+                return {}
         else:
             return data
     else:
-        return None
+        return {}
 
 
 def update_config(udata, key: str, subkey: str = None):

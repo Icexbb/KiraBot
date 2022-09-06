@@ -1,11 +1,10 @@
 from typing import Tuple
 
 from nonebot import on_message, Bot, on_notice, on_request
-from nonebot.adapters.onebot.v11 import Event
+from nonebot.adapters import Event
 from nonebot.exception import FinishedException
 from nonebot.log import logger
 
-from .config import LOG_LANG
 from .format import *
 from .handler.function import Function
 from .handler.module import loaded_modules, Module
@@ -52,7 +51,11 @@ async def handle_message(bot: Bot, event: Event):
 
         if function.positive:
             service.logger.opt(colors=True).success(
-                SV_POSITIVELY_TRIGGERED[LOG_LANG].format(func_name=function.name, mid=event.message_id))
+                SV_POSITIVELY_TRIGGERED.format(
+                    func_name=function.name,
+                    mid=event.dict()["message_id"],
+                )
+            )
             await trigger_function(function, bot, event)
             positive_triggered = True
         else:
@@ -77,10 +80,12 @@ async def trigger_function(function: Function, bot: Bot, event: Event):
         raise
     except Exception as e:
         logger.error(
-            SV_ERROR_HAPPENED[LOG_LANG].format(
-                func_name=function.name,
-                mid=event.message_id,
-                ex_type=type(e)
+            SV_ERROR_HAPPENED.format(
+                module=function.module_name,
+                sv=function.service_name,
+                func=function.name,
+                message_id=event.dict()["message_id"],
+                exception=type(e)
             ))
         logger.exception(e)
 

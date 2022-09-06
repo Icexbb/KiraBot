@@ -7,7 +7,6 @@ from nonebot.log import logger
 
 from .function import Function
 from .. import config
-from ..config import LOG_LANG
 from ..config import NICKNAME
 from ..format import *
 
@@ -67,7 +66,7 @@ class MessageTrigger:
                     self.key[p] = function
                 else:
                     logger.error(
-                        KEY_TRIGGER_ADD_ERROR[LOG_LANG].format(trigger=p))
+                        KEY_TRIGGER_ADD_ERROR.format(trigger=p))
 
         def match(self, message: str):
             raise NotImplementedError

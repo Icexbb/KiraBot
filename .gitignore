@@ -11,3 +11,5 @@ __bot__.py
 *.pyc
 
 *.bat
+
+/module/

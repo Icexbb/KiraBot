@@ -11,7 +11,7 @@ from nonebot_plugin_apscheduler import scheduler
 from .function import Function
 from .trigger import MESSAGE_TRIGGER_TYPE, message_trigger, notice_trigger
 from .. import auth
-from ..config import update_config, get_config, LOG_LANG
+from ..config import update_config, get_config
 from ..format import *
 from ..utils import get_area_id
 
@@ -26,7 +26,7 @@ class Service:
             visible: bool = True,
             enable: bool = True,
             _permission: int = None,
-            _help: str = None,
+            guidance: str = None,
     ):
         self.module_name = module_name
         self.name = name
@@ -36,7 +36,7 @@ class Service:
         self.permission = _permission or auth.NORMAL
         self.visible = visible
         self.enable = enable
-        self.help = _help
+        self.guidance = guidance
         self.logger = nonebot.log.logger
         self.functions: {str: Function} = {}
         self.scheduler = scheduler
@@ -115,7 +115,7 @@ class Service:
             async def wrapper():
                 try:
                     self.logger.info(
-                        SV_SCHEDULED_JOB_RUN[LOG_LANG].format(
+                        SV_SCHEDULED_JOB_RUN.format(
                             module=self.module_name,
                             service=self.name,
                             job=func.__name__
@@ -123,7 +123,7 @@ class Service:
                     )
                     ret = await func()
                     self.logger.info(
-                        SV_SCHEDULED_JOB_FINISHED[LOG_LANG].format(
+                        SV_SCHEDULED_JOB_FINISHED.format(
                             module=self.module_name,
                             service=self.name,
                             job=func.__name__
@@ -132,7 +132,7 @@ class Service:
                     return ret
                 except Exception as e:
                     self.logger.error(
-                        SV_SCHEDULED_JOB_ERROR[LOG_LANG].format(
+                        SV_SCHEDULED_JOB_ERROR.format(
                             module=self.module_name,
                             service=self.name,
                             job=func.__name__,
@@ -171,23 +171,32 @@ class Service:
         interval:float 每条信息发送时的间隔
         """
         config = self.load_config()
-        groups = [gid for gid in config['enabled_area'] if gid.isdigit()]
-        guilds = [gid for gid in config['enabled_area'] if not gid.isdigit()]
+        groups = [gid for gid in config['enabled_area'] if gid.startswith('g')]
+        guilds = [gid for gid in config['enabled_area'] if gid.startswith('c')]
+        users = [gid for gid in config['enabled_area'] if gid.startswith('u')]
         if at_all:
             msg += "[CQ:at,qq=all]"
-        for gid in groups:
+        for area_id in users:
             try:
                 await asyncio.sleep(interval)
-                await self.bot.send_group_msg(group_id=gid, msg=msg)
+                # await self.bot.send_private_msg(group_id=gid, msg=msg)
             except Exception as e:
-                self.logger.error(f'Exception {e} in Send Message To Group {gid}')
-        for gid in guilds:
+                self.logger.error(f'Exception {e} in Send Message To User {area_id}')
+
+        for area_id in groups:
             try:
-                guild_id, channel_id = gid.split('-')
+                group_id = area_id[1:]
+                await asyncio.sleep(interval)
+                await self.bot.send_group_msg(group_id=group_id, message=msg)
+            except Exception as e:
+                self.logger.error(f'Exception {e} in Send Message To Group {area_id}')
+        for area_id in guilds:
+            try:
+                guild_id, channel_id = area_id[1:].split('-')
                 await asyncio.sleep(interval)
                 await self.bot.send_guild_channel_msg(guild_id=guild_id, channel_id=channel_id, message=msg)
             except Exception as e:
-                self.logger.error(f'Exception {e} in Send Message To Guild {gid}')
+                self.logger.error(f'Exception {e} in Send Message To Guild {area_id}')
 
     def save_config(self, data: dict):
         """
@@ -202,10 +211,18 @@ class Service:
         data = get_config(self.module_name)
         if data:
             if self.name not in data:
+                try:
+                    en_area = self.enabled_area
+                except AttributeError:
+                    en_area = []
+                try:
+                    dis_area = self.disabled_area
+                except AttributeError:
+                    dis_area = []
                 data[self.name] = {
                     "name": self.name,
-                    "enabled_group": self.enabled_area or [],
-                    "disabled_group": self.disabled_area or [],
+                    "enabled_area": en_area,
+                    "disabled_area": dis_area,
                 }
                 update_config(data, self.module_name)
             return data[self.name]

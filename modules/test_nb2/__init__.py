@@ -3,7 +3,7 @@ from nonebot.adapters.onebot.v11 import Event
 
 from kirabot.handler import Module
 
-mo = Module('测试')
+mo = Module('测试', (1, 1, 1))
 test1 = mo.add_service('test1', (1, 1, 1))
 
 

@@ -34,6 +34,12 @@ class KiraBot:
 
         nonebot.load_plugin('nonebot_plugin_guild_patch')
         nonebot.load_plugin('nonebot_plugin_apscheduler')
+        for built_in_module in config.BUILT_IN_MODULE:
+            try:
+                nonebot.load_plugin(f'built-in.{built_in_module}')
+            except Exception as e:
+                nonebot.logger.exception(e)
+
         for module_name in config.MODULES_ON:
             try:
                 nonebot.load_plugin(f'modules.{module_name}')
@@ -47,8 +53,7 @@ class KiraBot:
             try:
                 self.init(**kwargs)
             except Exception:
-                raise RuntimeError(format.NOT_INIT_ERROR[config.LOG_LANG])
-        nonebot.logger.success('Scheduler Started')
+                raise RuntimeError(format.NOT_INIT_ERROR)
 
         try:
             self.running = True

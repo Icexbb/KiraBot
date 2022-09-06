@@ -29,19 +29,19 @@ class EventAuth:
         if str(self.user_id) in SUPERUSERS:
             return SU
 
-        whitelist = get_config('white')
+        whitelist = get_config('auth', 'white')
         if whitelist:
             if str(self.user_id) in whitelist:
                 if whitelist[self.user_id]:
                     return WHITE
 
-        blocklist = get_config('block')
+        blocklist = get_config('auth', 'block')
         if blocklist:
             if self.user_id in blocklist:
                 now = int(datetime.datetime.now().timestamp())
                 if now > blocklist[self.user_id]:
                     del blocklist[self.user_id]
-                    update_config(blocklist, 'block')
+                    update_config(blocklist, 'auth', 'block')
                 else:
                     return BLOCK
 
@@ -73,7 +73,7 @@ class EventAuth:
         whitelist[user_id or self.user_id] = status
         update_config(whitelist, 'auth', 'white')
 
-    def get_filed_availability(self):
+    def get_area_availability(self):
         auth_area = get_config('auth', 'area')
         if 'block' in auth_area:
             return BLOCK if self.area_id in auth_area['block'] else NORMAL

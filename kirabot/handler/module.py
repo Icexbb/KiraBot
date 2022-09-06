@@ -5,7 +5,6 @@ import nonebot
 
 from .service import Service
 from .. import auth
-from ..config import LOG_LANG
 from ..format import *
 
 _re_illegal_char = re.compile(r'[\\/:*?"<>|.]')
@@ -47,7 +46,7 @@ class Module:
             visible: bool = True,
             enable: bool = True,
             _permission: int = None,
-            _help: str = None
+            guidance: str = None
     ) -> Service:
         new_service = Service(
             self.name, name,
@@ -55,12 +54,12 @@ class Module:
             visible=visible,
             enable=enable,
             _permission=_permission or self.permission,
-            _help=_help
+            guidance=guidance
         )
         assert not _re_illegal_char.search(name), r'Service name cannot contain character in `\/:*?"<>|.`'
         assert new_service.name not in self.services, f'Service Name Duplicated'
         self.services[new_service.name] = new_service
-        nonebot.logger.info(SV_ADDED_INFO[LOG_LANG].format(module_name=self.name, service_name=name))
+        nonebot.logger.opt(colors=True).success(SV_ADDED_INFO.format(module_name=self.name, service_name=name))
         return new_service
 
     @property
@@ -85,9 +84,7 @@ def _change_area_service_availability(target_status: bool, area_id: str, service
     service_to_change.save_config(service_to_change.update_config())
 
 
-def set_module_status(
-        area_id: str, target_status: bool, module_name: str, service_name: str = None
-):
+def set_module_status(area_id: str, target_status: bool, module_name: str, service_name: str = None):
     if module_name in loaded_modules:
         module_selected: Module = loaded_modules[module_name]
     else:
@@ -103,3 +100,22 @@ def set_module_status(
         for service_name_iter in module_selected.services:
             service_iter: Service = module_selected.services[service_name_iter]
             _change_area_service_availability(target_status, area_id, service_iter)
+
+
+def get_module_help(module_name: str, service_name: str = None):
+    guidance_dict: {str: str} = {}
+    if module_name in loaded_modules:
+        module_selected: Module = loaded_modules[module_name]
+    else:
+        raise ModuleNotFoundError
+    if service_name:
+        if service_name in module_selected.services:
+            service_selected: Service = module_selected.services[service_name]
+            guidance_dict[service_name] = service_selected.guidance
+        else:
+            raise ModuleNotFoundError
+    else:
+        for service_name_iter in module_selected.services:
+            service_iter: Service = module_selected.services[service_name_iter]
+            guidance_dict[service_name_iter] = service_iter.guidance
+    return guidance_dict

@@ -24,7 +24,7 @@ def chain_reply(msgs: list, bot_name: str = RNAME, bot_uid: int | str = SELF_ID[
             "name": str(bot_name),
             "uin": str(bot_uid),
             "content": str(msg),
-        },
+        }
     } for msg in msgs]
     return chain
 
@@ -212,5 +212,6 @@ def timedelta2str(timed: timedelta) -> str:
     d, h = divmod(sec, 3600 * 24)
     h, r = divmod(h, 3600)
     m, s = divmod(r, 60)
-    result = f'{str(d) + "天" if d else ""}{str(h) + "时" if h else ""}{str(m) + "分" if m else ""}{str(s) + "秒" if s else ""}'.strip()
+    result = f'{str(d) + "天" if d else ""}{str(h) + "时" if h else ""}' \
+             f'{str(m) + "分" if m else ""}{str(s) + "秒" if s else ""}'.strip()
     return result

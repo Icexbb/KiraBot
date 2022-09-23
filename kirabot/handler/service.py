@@ -6,7 +6,8 @@ from typing import Tuple
 import nonebot
 from nonebot import Bot
 from nonebot.adapters import Event
-from nonebot.adapters.onebot.v11 import Message
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.exception import ActionFailed
 from nonebot_plugin_apscheduler import scheduler
 
 from .function import Function
@@ -60,7 +61,7 @@ class Service:
             trigger: str | list[str],
             field_type: Tuple[int, int, int] | Tuple[bool, bool, bool] = None,
             direct: bool = False,
-            positive: bool = None
+            positive: bool = True
     ) -> Callable:
         """
         消息触发任务
@@ -78,7 +79,7 @@ class Service:
         """
         ttype = MESSAGE_TRIGGER_TYPE[trigger_type] if isinstance(trigger_type, str) else trigger_type
         field_type = field_type or self.field or (0, 1, 1)
-        positive = positive or False
+        positive = positive
 
         def deco(func) -> Callable:
             sf = Function(self.module_name, self.name, func, direct, field_type, positive)
@@ -200,20 +201,34 @@ class Service:
         try:
             if area_id.startswith('g'):
                 if isinstance(message, list):
-                    msg = chain_reply(message)
-                    msg_id = await self.bot.send_group_forward_msg(group_id=area_id[1:], messages=msg)
+                    try:
+                        msg = chain_reply(message)
+                        msg_id = await self.bot.send_group_forward_msg(group_id=area_id[1:], messages=msg)
+                    except ActionFailed:
+                        self.logger.error(f"合并转发失败 尝试转换消息")
+                        assert sum([1 for m in message if isinstance(m, str | Message | MessageSegment)]) == len(
+                            message), "消息无法拼接"
+                        msg = "\n\n".join(message)
+                        msg_id = await self.bot.send_group_msg(group_id=area_id[1:], message=msg)
                 else:
                     msg_id = await self.bot.send_group_msg(group_id=area_id[1:], message=message)
             elif area_id.startswith('c'):
                 guild_id, channel_id = area_id[1:].split('-')
                 if isinstance(message, list):
-                    message = "\n".join(message)
+                    message = "\n\n".join(message)
                 msg_id = await self.bot.send_guild_channel_msg(guild_id=guild_id, channel_id=channel_id,
                                                                message=message)
             elif area_id.startswith('u'):
                 if isinstance(message, list):
-                    msg = chain_reply(message)
-                    msg_id = await self.bot.send_private_forward_msg(user_id=area_id[1:], messages=msg)
+                    try:
+                        msg = chain_reply(message)
+                        msg_id = await self.bot.send_private_forward_msg(user_id=area_id[1:], messages=msg)
+                    except ActionFailed:
+                        self.logger.error(f"合并转发失败 尝试转换消息")
+                        assert sum([1 for m in message if isinstance(m, str | Message | MessageSegment)]) == len(
+                            message), "消息无法拼接"
+                        msg = "\n\n".join(message)
+                        msg_id = await self.bot.send_private_msg(send_private_msg=area_id[1:], message=msg)
                 else:
                     msg_id = await self.bot.send_private_msg(send_private_msg=area_id[1:], message=message)
             else:

@@ -36,7 +36,7 @@ class Resource:
             @property
             def cqcode(self) -> str:
                 if not self.exist:
-                    raise FileNotFoundError
+                    raise FileNotFoundError(self.path)
                 ext = str(os.path.splitext(self.path)[-1]).lower()
                 if ext in [".png", ".jpg", ".webm", ".gif", ".bmp", ".jpeg"]:
                     # return pic2cq(self.path)
@@ -51,7 +51,7 @@ class Resource:
             @property
             def message_segment(self) -> MessageSegment:
                 if not self.exist:
-                    raise FileNotFoundError
+                    raise FileNotFoundError(self.path)
                 ext = str(os.path.splitext(self.path)[-1]).lower()
                 if ext in [".png", ".jpg", ".webm", ".gif", ".bmp", ".jpeg"]:
                     # return pic2cq(self.path)
@@ -83,7 +83,7 @@ class Resource:
                 if self.exist:
                     os.remove(self.path)
                 else:
-                    raise FileNotFoundError
+                    raise FileNotFoundError(self.path)
 
             @property
             def json(self):
@@ -101,7 +101,7 @@ class Resource:
 
                     def read(self) -> dict | list:
                         if not self.exist:
-                            raise FileNotFoundError("Json File Not Found")
+                            raise FileNotFoundError(self.path)
                         else:
                             try:
                                 with open(self.path, 'r', encoding='utf-8') as fp:

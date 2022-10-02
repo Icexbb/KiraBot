@@ -1,0 +1,15 @@
+nonebot2==2.0.0rc1
+httpx~=0.23.0
+selenium==4.5.0
+Pillow~=9.2.0
+fuzzywuzzy~=0.18.0
+filetype~=1.1.0
+loguru~=0.6.0
+cloudscraper~=1.2.64
+ujson~=5.5.0
+lxml~=4.9.1
+cn2an~=0.5.17
+aiocqhttp~=1.4.3
+aiohttp~=3.8.1
+psutil~=5.9.2
+requests~=2.28.1

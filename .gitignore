@@ -30,4 +30,4 @@ __bot__.py
 *.bat
 #user modules
 /modules/*
-/resource
+/resource/*

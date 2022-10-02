@@ -1,4 +1,6 @@
 import asyncio
+import re
+import time
 from functools import wraps
 from typing import Callable
 from typing import Tuple
@@ -58,7 +60,7 @@ class Service:
     def at_message(
             self,
             trigger_type: str | int,
-            trigger: str | list[str],
+            trigger: str | list[str] | re.Pattern,
             field_type: Tuple[int, int, int] | Tuple[bool, bool, bool] = None,
             direct: bool = False,
             positive: bool = True
@@ -119,28 +121,31 @@ class Service:
             @wraps(func)
             async def wrapper():
                 try:
-                    self.logger.info(
+                    self.logger.opt(colors=True).info(
                         SV_SCHEDULED_JOB_RUN.format(
-                            module=self.module_name,
-                            service=self.name,
-                            job=func.__name__
+                            module=self.module_name.capitalize(),
+                            service=self.name.capitalize(),
+                            job=func.__name__.capitalize()
                         )
                     )
+                    time_start = time.time()
                     ret = await func()
-                    self.logger.info(
+                    time_end = time.time()
+                    self.logger.opt(colors=True).info(
                         SV_SCHEDULED_JOB_FINISHED.format(
-                            module=self.module_name,
-                            service=self.name,
-                            job=func.__name__
+                            module=self.module_name.capitalize(),
+                            service=self.name.capitalize(),
+                            job=func.__name__.capitalize(),
+                            time=f"{time_end - time_start:.2f}"
                         )
                     )
                     return ret
                 except Exception as e:
-                    self.logger.error(
+                    self.logger.opt(colors=True).error(
                         SV_SCHEDULED_JOB_ERROR.format(
-                            module=self.module_name,
-                            service=self.name,
-                            job=func.__name__,
+                            module=self.module_name.capitalize(),
+                            service=self.name.capitalize(),
+                            job=func.__name__.capitalize(),
                             exception=type(e)
                         )
                     )
@@ -195,7 +200,8 @@ class Service:
         at = f"[CQ:at,qq={event.get_user_id()}]" if at_sender else ""
         if not isinstance(message, list):
             message = at + message
-        await self.send(area_id, message)
+        mid = await self.send(area_id, message)
+        return mid
 
     async def send(self, area_id: str, message: str | Message | list):
         try:
@@ -228,14 +234,15 @@ class Service:
                         assert sum([1 for m in message if isinstance(m, str | Message | MessageSegment)]) == len(
                             message), "消息无法拼接"
                         msg = "\n\n".join(message)
-                        msg_id = await self.bot.send_private_msg(send_private_msg=area_id[1:], message=msg)
+                        msg_id = await self.bot.send_private_msg(user_id=area_id[1:], message=msg.strip())
                 else:
-                    msg_id = await self.bot.send_private_msg(send_private_msg=area_id[1:], message=message)
+                    msg_id = await self.bot.send_private_msg(user_id=area_id[1:], message=message)
             else:
-                raise ValueError(f"Area id wrong {area_id}")
+                raise ValueError(f"Area id wrong {area_id.capitalize()}")
             return msg_id
         except Exception as e:
-            self.logger.error(f'Exception {e} in Send Message To {area_id}')
+            self.logger.error(f'Exception {e} in Send Message To {area_id.capitalize()}')
+            raise e
 
     def save_config(self, data: dict):
         """

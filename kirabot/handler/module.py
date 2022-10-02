@@ -106,7 +106,7 @@ def set_module_status(area_id: str, target_status: bool, module_name: str, servi
     if service_name:
         if service_name in module_selected.services:
             service_selected: Service = module_selected.services[service_name]
-            if check_service_feasibility(area_id, service_selected) and target_status:
+            if check_service_feasibility(area_id, service_selected):
                 _change_area_service_availability(target_status, area_id, service_selected)
                 return True
             else:
@@ -118,6 +118,7 @@ def set_module_status(area_id: str, target_status: bool, module_name: str, servi
             service_iter: Service = module_selected.services[service_name_iter]
             if check_service_feasibility(area_id, service_iter):
                 _change_area_service_availability(target_status, area_id, service_iter)
+        return True
 
 
 def check_service_feasibility(area_id: str, service: Service):

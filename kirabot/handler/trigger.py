@@ -56,8 +56,11 @@ class MessageTrigger:
         def __init__(self):
             self.key: {str: Function} = {}
 
-        def add_matcher(self, keys: str | list, function: Function):
-            if type(keys) == str:
+        def match(self, event: Event):
+            raise NotImplementedError
+
+        def add_matcher(self, keys: str | list[str], function: Function):
+            if not isinstance(keys, list):
                 keyword = [keys]
             else:
                 keyword = keys
@@ -67,9 +70,6 @@ class MessageTrigger:
                 else:
                     logger.error(
                         KEY_TRIGGER_ADD_ERROR.format(trigger=p))
-
-        def match(self, event: Event):
-            raise NotImplementedError
 
     class Prefix(MainTrigger):
         def __init__(self) -> None:
@@ -81,12 +81,9 @@ class MessageTrigger:
             for key in self.key:
                 me = message
                 func: Function = self.key[key]
-                if func.dm_only:
-                    for nickname in NICKNAME:
-                        if re.search(nickname, me):
-                            me = re.sub(nickname, '', me, 1)
-                if me.startswith(key) and (func not in matched_func):
-                    matched_func.append(func)
+                if me.startswith(key):
+                    if func not in matched_func:
+                        matched_func.append(func)
             return matched_func
 
     class Subfix(MainTrigger):
@@ -99,10 +96,6 @@ class MessageTrigger:
             for key in self.key:
                 me = message
                 func: Function = self.key[key]
-                if func.dm_only:
-                    for nickname in NICKNAME:
-                        if re.search(nickname, me):
-                            me = re.sub(nickname, '', me, 1)
                 if me.endswith(key) and (func not in matched_func):
                     matched_func.append(func)
             return matched_func
@@ -117,10 +110,6 @@ class MessageTrigger:
             for key in self.key:
                 me = message
                 func: Function = self.key[key]
-                if func.dm_only:
-                    for nickname in NICKNAME:
-                        if re.search(nickname, me):
-                            me = re.sub(nickname, '', me, 1)
                 if me == key and (func not in matched_func):
                     matched_func.append(func)
             return matched_func
@@ -135,10 +124,6 @@ class MessageTrigger:
             for key in self.key:
                 me = message
                 func: Function = self.key[key]
-                if func.dm_only:
-                    for nickname in NICKNAME:
-                        if re.search(nickname, me):
-                            me = re.sub(nickname, '', me, 1)
                 match = re.search(key, me)
                 if match and (func not in matched_func):
                     event.match[f'{func.module_name}.{func.service_name}.{func.name}'] = match
@@ -155,10 +140,6 @@ class MessageTrigger:
             for key in self.key:
                 me = message
                 func: Function = self.key[key]
-                if func.dm_only:
-                    for nickname in NICKNAME:
-                        if re.search(nickname, me):
-                            me = re.sub(nickname, '', me, 1)
                 if key in me and (func not in matched_func):
                     matched_func.append(func)
             return matched_func
@@ -173,10 +154,6 @@ class MessageTrigger:
             for key in self.key:
                 me = message
                 func: Function = self.key[key]
-                if func.dm_only:
-                    for nickname in NICKNAME:
-                        if re.search(nickname, me):
-                            me = re.sub(nickname, '', me, 1)
                 if fuzz.ratio(key, me) > config.fuzzy_rate:
                     matched_func.append(func)
             return matched_func

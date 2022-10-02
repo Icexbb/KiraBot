@@ -29,7 +29,7 @@ def chain_reply(msgs: list, bot_name: str = RNAME, bot_uid: int | str = SELF_ID[
     return chain
 
 
-def _pic2b64(pic: Image.Image) -> str:
+def pic2b64(pic: Image.Image) -> str:
     buf = BytesIO()
     pic.save(buf, format='PNG')
     base64_str = base64.b64encode(buf.getvalue()).decode()
@@ -42,7 +42,7 @@ def pic2cq(pic: Image.Image | str):
         pass
     elif type(pic) in [str]:
         pic: Image.Image = Image.open(pic)
-    return f'[CQ:image,file={_pic2b64(pic)}]'
+    return f'[CQ:image,file={pic2b64(pic)}]'
 
 
 class FreqLimiter:
@@ -52,7 +52,7 @@ class FreqLimiter:
         self.default_cd = default_cd_seconds
 
     def get_data(self):
-        return load_json(f'{self.name}.json', ['FreqLimiter'], )
+        return load_json(f'{self.name}.json', ['FreqLimiter'])
 
     def update_data(self, data: dict = None):
         if not data:
@@ -61,9 +61,13 @@ class FreqLimiter:
 
     def check(self, key) -> bool:
         data = self.get_data()
-        status = bool(time.time() >= data[key])
-        if status:
-            del data[key]
+        if data and key in data:
+            status = bool(time.time() >= data[key])
+            if status:
+                del data[key]
+        else:
+            status = True
+
         return status
 
     def start_cd(self, key, cd_time=0):
@@ -104,19 +108,19 @@ class DailyNumberLimiter:
     def check(self, key) -> bool:
         if not isinstance(key, str):
             key = str(key)
-        count = self._get_num(key)
+        count = self.get_num(key)
         return bool(count < self.max)
 
-    def _get_num(self, key):
+    def get_num(self, key):
         data = self._get_data()
-        if key in data:
+        if data and key in data:
             return data[key]
         else:
             return 0
 
     def increase(self, key, num=1):
         data = self._get_data()
-        data[key] = self._get_num(key) + num
+        data[key] = self.get_num(key) + num
         self.update_data(data)
 
     def reset(self, key):
@@ -190,7 +194,7 @@ async def silence(bot: Bot, ev: Event, ban_time, skip_su=True):
             uid = ev.get_user_id()
             if skip_su and uid in SUPERUSERS:
                 return
-            await bot.set_group_ban(self_id=ev.self_id, group_id=area_id[1:], user_id=uid,
+            await bot.set_group_ban(group_id=int(area_id[1:]), user_id=int(uid),
                                     duration=ban_time)
         except ActionFailed as e:
             if 'NOT_MANAGEABLE' in str(e):

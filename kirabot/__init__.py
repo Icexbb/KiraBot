@@ -1,7 +1,9 @@
 import asyncio
+import importlib
 import os
 
 import nonebot
+import nonebot.adapters.onebot.v11
 import nonebot.log
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.log import logger, default_format
@@ -41,13 +43,12 @@ class KiraBot:
                 nonebot.load_plugin(f'built-in.{built_in_module}')
             except Exception as e:
                 nonebot.logger.exception(e)
-
+        importlib.import_module(".handle", package="kirabot")
         for module_name in config.MODULES_ON:
             try:
                 self.load_plugin(module_name)
             except Exception as e:
                 nonebot.logger.exception(e)
-        from .handle import handle_message
         self.initialized = True
 
     def run(self, **kwargs):
@@ -74,12 +75,20 @@ class KiraBot:
             if os.path.splitext(os.path.join(module_path, file))[-1] == ".py"
         ]
         if "__init__" in module_files:
-            nonebot.load_plugin(f"modules.{module_name}")
-            module_files.remove("__init__")
-        for file in module_files:
-            nonebot.load_plugin(f"modules.{module_name}.{file}")
+            try:
+                importlib.import_module(f".{module_name}", package=f"modules")
+            except Exception as e:
+                logger.error(f"Import Module {module_name} Error")
+                logger.exception(e)
+        for file in [file for file in module_files if not file.startswith("_")]:
+            try:
+                importlib.import_module(f".{module_name}.{file}", package=f"modules")
+            except Exception as e:
+                logger.error(f"Import Module {module_name}.{file} Error")
+                logger.exception(e)
+            # nonebot.load_plugin(f"modules.{module_name}.{file}")
 
-    def get_bot(self):
+    def get_bot(self) -> nonebot.adapters.onebot.v11.Bot:
         if not self.initialized:
             raise ValueError(NOT_INIT_ERROR)
         elif not self.running:

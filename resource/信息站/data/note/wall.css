@@ -1,0 +1,12 @@
+body {
+    width: 2560px;
+    height: 1600px;
+    background-color: beige;
+}
+
+img {
+    max-width: 300px;
+    box-shadow: 3px 3px 3px #555;
+    display: inline-flex;
+    position: absolute;
+}

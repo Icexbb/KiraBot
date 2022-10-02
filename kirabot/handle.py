@@ -1,3 +1,4 @@
+import time
 from typing import Tuple
 
 from nonebot import on_message, Bot, on_notice, on_request
@@ -5,6 +6,7 @@ from nonebot.adapters import Event
 from nonebot.exception import FinishedException
 from nonebot.log import logger
 
+from .config import NICKNAME
 from .format import *
 from .handler.function import Function
 from .handler.module import loaded_modules, Module
@@ -48,18 +50,34 @@ async def handle_message(bot: Bot, event: Event):
 
         if not check_field(area_id, function):
             continue
-        if function.dm_only and not event.is_tome():
-            continue  # not to me, ignore.
+        if function.dm_only:
+            if not event.is_tome():
+                flag = 0
+                for nickname in NICKNAME:
+                    if nickname in (str(event.get_message())):
+                        flag = 1
+                        break
+                if not flag:
+                    continue  # not to me, ignore.
 
         if function.positive:
-            service.logger.opt(colors=True).success(
+            service.logger.opt(colors=True).info(
                 SV_POSITIVELY_TRIGGERED.format(
-                    func_name=function.name,
+                    func_name=function.name.capitalize(),
                     mid=event.dict()["message_id"],
                 )
             )
+            t1=time.time()
             await trigger_function(function, bot, event)
+            t2=time.time()
             positive_triggered = True
+            service.logger.opt(colors=True).info(
+                SV_POSITIVELY_FINISHED.format(
+                    func_name=function.name.capitalize(),
+                    mid=event.dict()["message_id"],
+                    time=f"{t2-t1:.2f}"
+                )
+            )
         else:
             await trigger_function(function, bot, event)
 

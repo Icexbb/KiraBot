@@ -27,7 +27,7 @@ class Resource:
     def file(self, filepath: str):
         class File:
             def __init__(self, parent, file_path):
-                self.path: str = os.path.join(parent, file_path)
+                self.path: str = os.path.realpath(os.path.join(parent, file_path))
 
             @property
             def exist(self) -> bool:
@@ -93,7 +93,7 @@ class Resource:
 
                 class json_file:
                     def __init__(self, json_path):
-                        self.path = json_path
+                        self.path = os.path.realpath(json_path)
 
                     @property
                     def exist(self):
@@ -118,6 +118,30 @@ class Resource:
                 return json_file(self.path)
 
             @property
+            def text(self):
+                class text_file:
+                    def __init__(self, text_path):
+                        self.path = os.path.realpath(text_path)
+
+                    @property
+                    def exist(self):
+                        return os.path.exists(self.path)
+
+                    def read(self, encoding="utf8") -> str:
+                        if not self.exist:
+                            raise FileNotFoundError(self.path)
+                        else:
+                            with open(self.path, 'r', encoding=encoding) as fp:
+                                data = fp.read()
+                            return data
+
+                    def save(self, text: str, encoding="utf8"):
+                        with open(os.path.realpath(self.path), 'w', encoding=encoding) as fp:
+                            fp.write(text)
+
+                return text_file(self.path)
+
+            @property
             def zip(self):
                 ext = str(os.path.splitext(self.path)[-1]).lower()
                 if ext not in [".zip"]:
@@ -125,7 +149,7 @@ class Resource:
 
                 class zip_file:
                     def __init__(self, zip_path):
-                        self.path = zip_path
+                        self.path = os.path.realpath(zip_path)
                         self.filename = os.path.split(zip_path)
 
                     @property
@@ -147,7 +171,7 @@ class Resource:
     def dir(self, dir_path: str):
         class Dir:
             def __init__(self, parent, p):
-                self.path: str = os.path.join(parent, p)
+                self.path: str = os.path.realpath(os.path.join(parent, p))
 
             @property
             def exist(self):
